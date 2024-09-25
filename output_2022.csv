@@ -1,5 +1,4 @@
-Skaičiavimai
-Data,Mokėjimo rūšis,Suma GBP,Valiutų kursas* EUR/GBP,Suma EUR
+Data,Mokėjimo rūšis,Suma GBP,Valiutų kursas EUR/GBP,Suma EUR
 2022-01-10,Repayment,7.00,0.83398,8.39
 2022-02-10,Repayment,7.00,0.84248,8.31
 2022-03-10,Repayment,7.00,0.84175,8.32
@@ -24,6 +23,6 @@ Data,Mokėjimo rūšis,Suma GBP,Valiutų kursas* EUR/GBP,Suma EUR
 2022-11-30,Interest,20.78,0.86488,24.03
 2022-12-31,Interest,26.04,0.88693,29.36
 
-2022,Visos sumokėtos įmokos,,,532.63
-2022,Palūkanų suma,,,187.47
-2022,Įmokų dalis paskolai dengti,,,345.15
+Total (GBP),,459.0,,532.63
+Total Interest (GBP),,161.34,,187.47
+Amount Toward Loan Repayment (EUR),,,,345.15

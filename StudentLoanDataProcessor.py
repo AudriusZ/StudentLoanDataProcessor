@@ -159,11 +159,15 @@ class StudentLoanDataProcessor:
         """
         Calculates the total repayments and interest in both GBP and EUR.
         Also calculates the amount that went toward repaying the loan (in EUR).
+        Returns the full dataset along with totals.
         """
         total_repayments_gbp = 0.0
         total_interest_gbp = 0.0
         total_repayments_eur = 0.0
         total_interest_eur = 0.0
+
+        # Store the data for generating the table
+        data = []
 
         # Sum repayments in GBP and EUR
         for date, amount_gbp, rate in self.matched_repayments:
@@ -171,6 +175,7 @@ class StudentLoanDataProcessor:
             amount_eur = amount_gbp / rate
             total_repayments_gbp += amount_gbp
             total_repayments_eur += amount_eur
+            data.append([date, "Repayment", amount_gbp, rate, round(amount_eur, 2)])
 
         # Sum interest in GBP and EUR
         for date, amount_gbp, rate in self.matched_interest:
@@ -178,10 +183,12 @@ class StudentLoanDataProcessor:
             amount_eur = amount_gbp / rate
             total_interest_gbp += amount_gbp
             total_interest_eur += amount_eur
+            data.append([date, "Interest", amount_gbp, rate, round(amount_eur, 2)])
 
         total_loan_repaid_eur = total_repayments_eur - total_interest_eur
 
         return {
+            "data": data,  # Return data for PDF table
             "total_repayments_gbp": total_repayments_gbp,
             "total_interest_gbp": total_interest_gbp,
             "total_repayments_eur": total_repayments_eur,
@@ -189,44 +196,74 @@ class StudentLoanDataProcessor:
             "total_loan_repaid_eur": total_loan_repaid_eur
         }
 
+
+    def process_data_for_export(self, year):
+        """
+        Prepares the raw data (repayments and interest) for exporting by filtering it for the specified year.
+        """
+        self.filter_by_year(year)
+
+        data = []
+
+        # Repayments
+        for date, amount_gbp, rate in self.matched_repayments:
+            amount_eur = float(amount_gbp) / rate
+            data.append([date, "Repayment", amount_gbp, rate, round(amount_eur, 2)])
+
+        # Interest
+        for date, amount_gbp, rate in self.matched_interest:
+            amount_eur = float(amount_gbp) / rate
+            data.append([date, "Interest", amount_gbp, rate, round(amount_eur, 2)])
+
+        return data
+
+    def format_for_exporting(self, data):
+        """
+        Formats the data for exporting (to CSV or PDF). Adds headers and handles formatting.
+        """
+        # Add headers
+        formatted_data = [["Data", "Mokėjimo rūšis", "Suma GBP", "Valiutų kursas EUR/GBP", "Suma EUR"]]
+        
+        # Append the processed data
+        formatted_data.extend(data)
+
+        # Totals - you can calculate totals using your existing method
+        totals = self.calculate_totals()
+
+        # Append totals to the formatted data
+        formatted_data.append([])
+        formatted_data.append([f"Įmokų suma", "", "", "", round(totals['total_repayments_eur'], 2)])
+        formatted_data.append([f"Palūkanų suma", "", "", "", round(totals['total_interest_eur'], 2)])
+        formatted_data.append([f"Dalis paskolai dengti", "", "", "", round(totals['total_loan_repaid_eur'], 2)])
+
+        return formatted_data
+
     def export_to_csv(self, year=None):
         """
-        Exports the processed data, including matched exchange rates and totals, to a CSV file.
-        The file is named according to the filtered year (if provided).
+        Exports data to CSV, using the formatted data from format_for_exporting.
         """
         if year is None:
             year = self.filtered_year
+
+        # Use the process_data_for_export method to prepare the data
+        raw_data = self.process_data_for_export(year)
+
+        # Format the data for exporting (adds headers and totals)
+        formatted_data = self.format_for_exporting(raw_data)
+        
+        # Filename generation
         filename = f"output_{year}.csv"
         print(f"Exporting data to {filename}...")
 
-        # Perform the calculations
-        totals = self.calculate_totals()
-
+        # Write the formatted data to CSV
         with open(filename, mode='w', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
-
-            # Write header
-            writer.writerow(["Skaičiavimai"])
-            writer.writerow(["Data", "Mokėjimo rūšis", "Suma GBP", "Valiutų kursas* EUR/GBP", "Suma EUR"])
-
-            # Write repayment transactions
-            for date, amount_gbp, rate in self.matched_repayments:
-                amount_eur = float(amount_gbp) / rate
-                writer.writerow([date, "Repayment", amount_gbp, rate, round(amount_eur, 2)])
-
-            # Write interest transactions
-            for date, amount_gbp, rate in self.matched_interest:
-                amount_eur = float(amount_gbp) / rate
-                writer.writerow([date, "Interest", amount_gbp, rate, round(amount_eur, 2)])
-
-            # Write totals at the end
-            writer.writerow([])
-            writer.writerow([f"{year}", "Visos sumokėtos įmokos", "", "", round(totals["total_repayments_eur"], 2)])
-            writer.writerow([f"{year}", "Palūkanų suma", "", "", round(totals["total_interest_eur"], 2)])
-            writer.writerow([f"{year}", "Įmokų dalis paskolai dengti", "", "", round(totals["total_loan_repaid_eur"], 2)])
+            for row in formatted_data:
+                writer.writerow(row)
 
         print(f"Data successfully written to {filename}")
 
+"""
 # Example usage:
 pdf_paths = ['Student Finance Account _ 21-22.pdf', 'Student Finance Account _ 22-23.pdf']
 xml_path = 'gbp.xml'
@@ -238,4 +275,4 @@ processor.filter_by_year(2022)  # Step 3: Filter data for the year 2022
 processor.import_exchange_rates()  # Step 4: Import exchange rates from XML
 processor.match_exchange_rates()  # Step 5: Match exchange rates to transactions
 processor.export_to_csv()  # Step 6: Export the data to CSV file
-
+"""
